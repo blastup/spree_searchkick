@@ -1,6 +1,12 @@
 Spree::ProductsController.class_eval do
   before_filter :load_taxon, only: [:best_selling]
 
+  def index
+    @searcher = build_searcher(params.merge(include_images: true))
+    @products = @searcher.retrieve_products
+    @taxonomies = Spree::Taxonomy.includes(root: :children)
+  end
+
   # Sort by conversions desc
   def best_selling
     params.merge(taxon: @taxon.id) if @taxon
