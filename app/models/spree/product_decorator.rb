@@ -1,5 +1,5 @@
 Spree::Product.class_eval do
-
+  searchkick 
   def search_data
     json = {
       id: id,
