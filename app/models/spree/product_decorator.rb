@@ -1,6 +1,5 @@
 Spree::Product.class_eval do
-  searchkick index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name
-  
+  searchkick index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name, callbacks: :async
   def search_data
     json = {
       id: id,
