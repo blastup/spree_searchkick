@@ -1,8 +1,16 @@
 Spree::Product.class_eval do
-  searchkick index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name, callbacks: :async
+  searchkick word_start: [:name], settings: { number_of_replicas: 0 } unless respond_to?(:searchkick_index)
+
+  def self.autocomplete_fields
+    [:name]
+  end
+
+  def self.search_fields
+    [:name]
+  end
+
   def search_data
     json = {
-      id: id,
       name: name,
       description: description,
       active: available?,
@@ -32,9 +40,30 @@ Spree::Product.class_eval do
 
   def self.autocomplete(keywords)
     if keywords
-      Spree::Product.search(keywords, autocomplete: true, limit: 10).map(&:name).map(&:strip).uniq
+      Spree::Product.search(
+        keywords,
+        fields: autocomplete_fields,
+        match: :word_start,
+        limit: 10,
+        load: false,
+        misspellings: { below: 3 },
+        where: search_where
+      ).map(&:name).map(&:strip).uniq
     else
-      Spree::Product.search('*').map(&:name).map(&:strip)
+      Spree::Product.search(
+        '*',
+        fields: autocomplete_fields,
+        load: false,
+        misspellings: { below: 3 },
+        where: search_where
+      ).map(&:name).map(&:strip)
     end
+  end
+
+  def self.search_where
+    {
+      active: true,
+      price: { not: nil }
+    }
   end
 end

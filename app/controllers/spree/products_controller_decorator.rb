@@ -1,5 +1,5 @@
 Spree::ProductsController.class_eval do
-  before_filter :load_taxon, only: [:best_selling]
+  before_action :load_taxon, only: [:best_selling]
 
   def index
     @searcher = build_searcher(params.merge(include_images: true))
