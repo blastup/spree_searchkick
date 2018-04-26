@@ -1,5 +1,10 @@
 Spree::Product.class_eval do
-  searchkick word_start: [:name], settings: { number_of_replicas: 0 } unless respond_to?(:searchkick_index)
+  searchkick(
+    index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name,
+    callbacks: :async,
+    word_start: ([:name] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten! ,
+    searchable: ([:name, :format_ref, :ref_code, :barcode, :sku] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten!
+  )
 
   def self.autocomplete_fields
     [:name]
@@ -11,16 +16,19 @@ Spree::Product.class_eval do
 
   def search_data
     json = {
+      id: id,
       name: name,
-      description: description,
+      barcode: master.barcode,
+      ref_code: ref_code,
+      format_ref: format_ref,
+      available_for_free: available_for_free,
+      sku: master.sku,
       active: available?,
       created_at: created_at,
-      updated_at: updated_at,
-      price: price,
-      currency: currency,
-      conversions: orders.complete.count,
+      role_prices: variants.map {|v| v.role_prices.map { |p| {amount: p.amount, role_id: p.spree_role_id} } }.flatten(1),
+      role_prices_role_ids: variants.map {|v| v.role_prices.map(&:spree_role_id) }.flatten(1),
       taxon_ids: taxon_and_ancestors.map(&:id),
-      taxon_names: taxon_and_ancestors.map(&:name)
+      store_ids: store_ids
     }
 
     Spree::Property.all.each do |prop|
