@@ -1,10 +1,12 @@
 Spree::Product.class_eval do
-  searchkick(
-    index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name,
-    callbacks: :async,
-    word_start: ([:name] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten! ,
-    searchable: ([:name, :format_ref, :ref_code, :barcode, :sku] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten!
-  )
+  if ActiveRecord::Base.connection.table_exists? 'spree_property_translations'
+    searchkick(
+      index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name,
+      callbacks: :async,
+      word_start: ([:name] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten! ,
+      searchable: ([:name, :format_ref, :ref_code, :barcode, :sku] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten!
+    )
+  end
 
   def self.autocomplete_fields
     [:name]
