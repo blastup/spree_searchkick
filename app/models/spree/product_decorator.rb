@@ -1,6 +1,6 @@
 Spree::Product.class_eval do
 
-  # if ActiveRecord::Base.connection.table_exists? 'spree_property_translations'
+  if ActiveRecord::Base.connection.table_exists? 'spree_property_translations'
     searchkick ({
       index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name,
       callbacks: :async,
@@ -8,7 +8,7 @@ Spree::Product.class_eval do
       searchable: ([:name, :format_ref, :ref_code, :barcode, :sku] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten!,
       settings: ({ number_of_replicas: 0 } unless respond_to?(:searchkick_index))
     })
-  # end
+  end
 
   def self.autocomplete_fields
     [:name]
