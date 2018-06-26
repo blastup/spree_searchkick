@@ -31,8 +31,7 @@ Spree::Product.class_eval do
       created_at: created_at,
       role_prices: variants.map {|v| v.role_prices.map { |p| {amount: p.amount, role_id: p.spree_role_id} } }.flatten(1),
       role_prices_role_ids: variants.map {|v| v.role_prices.map(&:spree_role_id) }.flatten(1),
-      taxon_ids: taxon_and_ancestors.map(&:id),
-      store_ids: store_ids
+      taxon_ids: taxon_and_ancestors.map(&:id)
     }
 
     Spree::Property.all.each do |prop|
