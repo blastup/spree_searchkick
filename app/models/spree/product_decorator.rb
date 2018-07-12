@@ -1,5 +1,5 @@
 Spree::Product.class_eval do
-  
+
   searchkick word_start: [:name], settings: { number_of_replicas: 0 } unless respond_to?(:searchkick_index)
 
   def self.autocomplete_fields
@@ -26,13 +26,14 @@ Spree::Product.class_eval do
 
     props = {}
     product_properties.each { |p| props[p.property.name] = p.value.split("/~n").map(&:strip) if p.property && p.value }
+    json.merge!(props)
 
     # TODO - refactor this block like in product_properties
     Spree::Taxonomy.all.each do |taxonomy|
       json.merge!(Hash["#{taxonomy.name.downcase}_ids", taxon_by_taxonomy(taxonomy.id).map(&:id)])
     end
 
-    json.merge(props)
+    json
   end
 
   def taxon_by_taxonomy(taxonomy_id)
