@@ -1,14 +1,6 @@
 Spree::Product.class_eval do
-
-  if ActiveRecord::Base.connection.table_exists? 'spree_property_translations'
-    searchkick ({
-      index_prefix: Rails.configuration.elasticsearch_index_name.nil? ? "" : Rails.configuration.elasticsearch_index_name,
-      callbacks: :async,
-      word_start: ([:name] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten!,
-      searchable: ([:name, :format_ref, :ref_code, :barcode, :sku] << Spree::Property.all.map { |prop| prop.name.downcase.to_sym}).flatten!,
-      settings: ({ number_of_replicas: 0 } unless respond_to?(:searchkick_index))
-    })
-  end
+  
+  searchkick word_start: [:name], settings: { number_of_replicas: 0 } unless respond_to?(:searchkick_index)
 
   def self.autocomplete_fields
     [:name]
@@ -20,29 +12,27 @@ Spree::Product.class_eval do
 
   def search_data
     json = {
-      id: id,
       name: name,
-      barcode: master.barcode,
-      ref_code: ref_code,
-      format_ref: format_ref,
-      available_for_free: available_for_free,
-      sku: master.sku,
+      description: description,
       active: available?,
       created_at: created_at,
-      role_prices: variants.map {|v| v.role_prices.map { |p| {amount: p.amount, role_id: p.spree_role_id} } }.flatten(1),
-      role_prices_role_ids: variants.map {|v| v.role_prices.map(&:spree_role_id) }.flatten(1),
-      taxon_ids: taxon_and_ancestors.map(&:id)
+      updated_at: updated_at,
+      price: price,
+      currency: currency,
+      conversions: orders.complete.count,
+      taxon_ids: taxon_and_ancestors.map(&:id),
+      taxon_names: taxon_and_ancestors.map(&:name)
     }
 
-    Spree::Property.all.each do |prop|
-      json.merge!(Hash[prop.name.downcase, property(prop.name)])
-    end
+    props = {}
+    product_properties.each { |p| props[p.property.name] = p.value.split("/~n").map(&:strip) if p.property && p.value }
 
+    # TODO - refactor this block like in product_properties
     Spree::Taxonomy.all.each do |taxonomy|
       json.merge!(Hash["#{taxonomy.name.downcase}_ids", taxon_by_taxonomy(taxonomy.id).map(&:id)])
     end
 
-    json
+    json.merge(props)
   end
 
   def taxon_by_taxonomy(taxonomy_id)
